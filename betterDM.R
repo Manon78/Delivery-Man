@@ -157,8 +157,24 @@ TravelCost <- function(current, neigbour, roads) {
 }
 
 
-
-FindLeastCostFrontierNode <- function(nodes) {
+FindLeastCostFrontierNode <- function(nodes){  
+  #Pretend that best node has f of 99999:
+  bestNode$f <- 99999
+  #Iterate through entire matrix and find better node
+  if (length(frontierSize) > 0) { # Not needed if the frontier is empty
+    for(i in 1:gridSize) {
+      for (j in 1:gridSize) {
+        if (IsInFrontier(nodes[[i]][[j]], nodes)) && (nodes[[i]][[j]]$f < bestNode$f){ #Only check nodes that are in frontier
+            bestNode <- nodes[[i]][[j]]
+        }
+      }
+    }
+    return(bestNode)
+  }
+  else{} #TODO: work out what to return if frontierSize is 0
+}
+  
+#FindLeastCostFrontierNode <- function(nodes) {
   #TODO
   # leastCost <- some big number
   # nodeX <- 0
@@ -169,7 +185,7 @@ FindLeastCostFrontierNode <- function(nodes) {
   #      nodeX <- node.x
   #      nodeY <- node.y
   # return a node 
-}
+#}
 
 
 GetMove <- function(car, goal, nodes) {
