@@ -2,36 +2,29 @@ BetterDM = function(roads,car,packages) {
   nextMove = 0
   toGo = 0
   offset = 0
-  if (car$load==0) { #order the manhattan distances to each package(?)
-    #prmatrix(packages)
-    packagesX = packages[, 1]
-    packagesY = packages[, 2]
-    packageDistances = ((packagesX - car$x)**2 + (packagesY - car$y)**2)
-    orderedDistances = order(packageDistances)
     
-    toGo = 0
-    i = 1
-    while (toGo == 0) {
-      if (packages[orderedDistances[i], 5] == 0) #first item that hasn't been picked up
-        toGo = orderedDistances[i]
-      else
-        i = i+1
+    if (car$load==0) {
+      packagesX = packages[, 1]
+      packagesY = packages[, 2]
+      packageDistances = ((packagesX - car$x)**2 + (packagesY - car$y)**2)
+      orderedDistances = order(packageDistances)
+      
+      toGo = 0
+      i = 1
+      while (toGo == 0) {
+        if (packages[orderedDistances[i], 5] == 0)
+          toGo = orderedDistances[i]
+        else
+          i = i+1
+      }
+    } else {
+      toGo=car$load  
+      offset=2
     }
-  #if (car$load == 0) {
-    # pick which package to pick up somehow
-    #By selecting the one with lowest total cost after A* algorithm has run for all options
-    #for movement to package and movement from package to destination
-  }
-  
-  else {
-    toGo = car$load  
-    offset = 2
-  }
-  
   goal = c(packages[toGo, offset + 1], packages[toGo, offset + 2])
   print("goal")
   print(goal)
-  car$nextMove = AStar(car, goal, roads)  # the optimal next move to make, as integer
+  car$nextMove = AStar(car, goal, roads)[[1]]  # the optimal next move to make, as integer
   car$mem = list()
   return (car)
   
@@ -48,23 +41,28 @@ AStar = function(car, goal, roads) {
   for (i in 1:gridSize) {
     nodes[[i]] = list()
     for (j in 1:gridSize) {
-      nodes[[i]][[j]] = list(x = i, y = j, realCost = 0, f = 10000, h = 0, parent = c(x = i, y = j), # c() is "combine" into a single list 
-                              inFrontier = FALSE, visited = FALSE)  
+      nodes[[i]][[j]] = list(x = i, y = j, realCost = 0, f = 10000, h = Heuristic(i, j, goal), parent = c(i, j), # c() is "combine" into a single list 
+                              inFrontier = FALSE, visited = FALSE)
     }
   }
+  #print("The nodes matrix!")
+  #print(nodes)
+  print("Goal:")
+  print(goal)
+  print("First node's heuristic to goal")
+  print(nodes[[1]][[1]]$h)
   
-  # set up the start node at car position with f = 0, add it to the frontier
-  nodes[[car$x]][[car$y]]$f = 0
+  # set up the start node at car position with f = heuristic, add it to the frontier
+  nodes[[car$x]][[car$y]]$f = nodes[[car$x]][[car$y]]$h
   nodes[[car$x]][[car$y]]$inFrontier = TRUE
   frontierSize = frontierSize + 1
-  
   # main loop
   while (frontierSize > 0) {
-    print('frontier size')
+    print('Begin while loop. Frontier size:')
     print(frontierSize)
     # explore the node on the frontier with lowest f
     current = FindLeastCostFrontierNode(nodes, gridSize)
-    print('current')
+    print('Node in frontier with smallest f value:')
     print(current)
     
     # if that is the goal, done :)
@@ -72,17 +70,20 @@ AStar = function(car, goal, roads) {
       # return the best next move
       print('get move')
       print(GetMove(car, goal, nodes))
-      return(GetMove(car, goal, nodes))
+      return(c(GetMove(car, goal, nodes), nodes[[goal[[1]]]][[goal[[2]]]]$f))
       #TODO: also return the value of realCost to goal
     }
     
     # else pop current node off the frontier, add to visited
+    print("Removing current node from frontier, and marking it as visited. Reducing size of frontier by 1.")
     nodes[[current$x]][[current$y]]$inFrontier = FALSE
     nodes[[current$x]][[current$y]]$visited = TRUE
     frontierSize = frontierSize - 1
     
     # "explore" the current node
     neighbours = GenerateNeighbours(current, gridSize)  # list of coordinates of all the neighbours
+    print("Generate neighbours of current node. Number of neighbours:")
+    print(length(neighbours))
     # look at each of the neighbours in turn
     for (i in 1:length(neighbours)) {
       neighbour = neighbours[[i]]
@@ -93,28 +94,41 @@ AStar = function(car, goal, roads) {
       }
       else{
         # calculate known cost of getting to that node, given current traffic
+        print("Finding costs of first neighbour, which has x, y :")
+        print(neighbourNode$x)
+        print(neighbourNode$y)
         cost = nodes[[current$x]][[current$y]]$realCost + TravelCost(current, neighbourNode, roads)
         print('travel cost')
         print(TravelCost(current, neighbourNode, roads))
+        print("Real cost:")
+        print(cost)
+        print("neigbhour node's heuristic:")
+        print(neighbourNode$h)
+        print("neighbour's f cost")
+        print(cost+neighbourNode$h)
         # if the node isn't yet in the frontier, or there is a copy of it in the frontier but this one has lower cost
         if ((!IsInFrontier(neighbourNode, nodes)) || (cost < nodes[[neighbourNode$x]][[neighbourNode$y]]$realCost)) {  
           # add it to the frontier and set its attributes
           nodes[[neighbourNode$x]][[neighbourNode$y]]$parent = c(current$x, current$y)
           nodes[[neighbourNode$x]][[neighbourNode$y]]$realCost = cost
-          nodes[[neighbourNode$x]][[neighbourNode$y]]$h = Heuristic(neighbourNode$x, neighbourNode$y, goal)
-          nodes[[neighbourNode$x]][[neighbourNode$y]]$f = cost + nodes[[neighbourNode$x]][[neighbourNode$y]]$h
+          #nodes[[neighbourNode$x]][[neighbourNode$y]]$h = Heuristic(neighbourNode$x, neighbourNode$y, goal) #heuristic initialized at start in matrix
+          nodes[[neighbourNode$x]][[neighbourNode$y]]$f = cost + neighbourNode$h
+          print("Done updating values")
+          print("f cost added as:")
+          print(nodes[[neighbourNode$x]][[neighbourNode$y]]$f)
           
           # if that node wasn't already in the frontier, add it, and update the size of the frontier
           if (!IsInFrontier(neighbourNode, nodes)) {
             print('add to frontier')
             nodes[[neighbourNode$x]][[neighbourNode$y]]$inFrontier = TRUE 
             frontierSize =  frontierSize + 1
+            print("new frontier size:")
+            print(frontierSize)
           }
         }
         i = i + 1
-        
       }
-      print('frontier size end loop')
+      print('finished adding neighbour to frontier')
       print(frontierSize)
     }
   }
@@ -189,17 +203,37 @@ TravelCost = function(current, neighbour, roads) {
 
 
 FindLeastCostFrontierNode = function(nodes, gridSize){  
+  #TODO: delete three lines below.
   #Pretend that best node has f of 99999:
-  bestNode = nodes[[1]][[1]]
+  #bestNode = nodes[[1]][[1]] # This is why we're not moving! We never get into the loop!
   #bestNode$f = 99999
-  #Iterate through entire matrix and find better node
+  
+  #Iterate through entire matrix and create list of frontier nodes.
+  frontierlist = list()
   for(i in 1:gridSize) {
-    for (j in 2:gridSize) {
-      if ((IsInFrontier(nodes[[i]][[j]], nodes)) && (nodes[[i]][[j]]$f < bestNode$f)){ #Only check nodes that are in frontier
-          bestNode = nodes[[i]][[j]]
-      }
+    for (j in 1:gridSize) {
+      if ((IsInFrontier(nodes[[i]][[j]], nodes))){
+        
+        frontierlist[[length(frontierlist)+1]] = c(nodes[[i]][[j]]$x, nodes[[i]][[j]]$y, nodes[[i]][[j]]$f) # TODO: find out how to append nodes[[i]][[j]] to the frontierlist. At the moment, frontierlist remains empty :/
+        }
     }
   }
+  print("frontier list!")
+  print(frontierlist)
+  
+  #iterate through list of frontier nodes to find node with smallest f value:
+  bestNode = nodes[[frontierlist[[1]][[1]]]][[frontierlist[[1]][[2]]]]
+  if (length(frontierlist) > 1) {
+    i = 1
+    while (i < length(frontierlist)) {
+      if (frontierlist[[i]][[3]] < bestNode$f) {
+        bestNode = nodes[[frontierlist[[i]][[1]]]][[frontierlist[[i]][[2]]]]
+      }
+      i = i + 1
+    }
+  }
+  print("BEST NODE")
+  print(bestNode)
   return(bestNode)
 }
 
@@ -213,7 +247,7 @@ GetMove = function(car, goal, nodes) {
   path[[1]] = current
   i = 2
   # trace back using the parent attribute of nodes until find the first node you moved to
-  while(parent[1] != car$x || parent[2] != car$y) {
+  while(nodes[[current[1]]][[current[2]]]$parent[1] != car$x || nodes[[current[1]]][[current[2]]]$parent[2] != car$y) {
     current = cameFrom
     cameFrom = nodes[[current[1]]][[current[2]]]$parent
     path[[i]] = current
