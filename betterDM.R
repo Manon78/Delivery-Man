@@ -42,7 +42,7 @@ AStar = function(car, goal, roads) {
   for (i in 1:gridSize) {
     nodes[[i]] = list()
     for (j in 1:gridSize) {
-      nodes[[i]][[j]] = list(x = i, y = j, realCost = 0, f = 10000, h = Heuristic(i, j, goal), parent = c(i, j), # c() is "combine" into a single list 
+      nodes[[i]][[j]] = list(x = i, y = j, realCost = 0, f = 10000, h = Heuristic(i, j, goal), parent = c(i, j), 
                               inFrontier = FALSE, visited = FALSE)
     }
   }
@@ -73,8 +73,7 @@ AStar = function(car, goal, roads) {
     for (i in 1:length(neighbours)) {
       neighbour = neighbours[[i]]
       neighbourNode = nodes[[neighbour[[1]]]][[neighbour[[2]]]]
-      if (IsVisited(neighbourNode, nodes)) {  #TODO is this the right behaviour?
-        #TODO: semi-certain answer: only ignore node if f is higher than f same position visited node
+      if (IsVisited(neighbourNode, nodes)) { 
         i = i + 1  # don't do anything with this node, as it has already been visited 
       }
       else{
@@ -173,7 +172,7 @@ FindLeastCostFrontierNode = function(nodes, gridSize){
     for (j in 1:gridSize) {
       if ((IsInFrontier(nodes[[i]][[j]], nodes))){
         
-        frontierlist[[length(frontierlist)+1]] = c(nodes[[i]][[j]]$x, nodes[[i]][[j]]$y, nodes[[i]][[j]]$f) # TODO: find out how to append nodes[[i]][[j]] to the frontierlist. At the moment, frontierlist remains empty :/
+        frontierlist[[length(frontierlist)+1]] = c(nodes[[i]][[j]]$x, nodes[[i]][[j]]$y, nodes[[i]][[j]]$f)
         }
     }
   }
