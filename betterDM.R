@@ -5,36 +5,45 @@ BetterDM = function(roads,car,packages) {
   
   if (car$load==0) {
     toGo = 0
-    CostsList = list()
+    costsList = list(length(packages))
+    resultsList = list(length(packages))
+    print('initial costs list')
+    print(costsList)
     while (toGo == 0) {
-      for (i in 1:length(packages)){
+      for (i in 1:5){
         if (packages[i, 5] == 0){
-          CostsList = addCost(roads, car, packages, i, CostsList)
+          result = AStar(car, c(packages[i, 1], packages[i, 2]), roads)
+          costsList[i] = result[2]
+          resultsList[i]= result[1]
           i = i+1
         }
         else{
-          CostsList[[length(CostsList) + 1]] <- 99999 #add high value of cost to the cost list
+          costsList[[i]] <- 99999 #add high value of cost to the cost list
           i = i+1
         }
       }
       print("Cost list")
-      print(CostsList)
+      print(costsList)
       
       #TODO: find smallest cost in this list, return its index
-      packNo = which.min(thingslist) #the first item in the tuple 
-      toGo = i # an integer
+      packNo = which.min(costsList) 
+    
+      toGo = packNo # an integer
       }
     }
     else {
       toGo=car$load  
       offset=2 # makes you go do the package drop off coordinates (which are 2 items down from the pack pick up coordinates)
     }
-  
-  goal = c(packages[toGo, offset + 1], packages[toGo, offset + 2])
+  print('packages')
+  print(packages)
+  print('toGo')
+  print(toGo)
+  goal = c(packages[toGo,  1], packages[toGo, 2])
   print("goal")
   print(goal)
   #results = AStar(car, goal, roads)
-  car$nextMove = results[1]  # the optimal next move to make, as integer
+  car$nextMove = resultsList[toGo]  # the optimal next move to make, as integer
   car$mem = list()
   return (car)
 }
@@ -44,8 +53,11 @@ addCost = function(roads, car, packages, i, CostsList){
   print(goal)
   results = AStar(car, goal, roads)
   CostsList[[length(CostsList) + 1]] <- results[2] # add the cost of travel to the goal to a list of costs, in order of packs.
+  print(CostsList)
+  print('cost list')
   return (CostsList)
 }
+
 
 AStar = function(car, goal, roads) {
   gridSize = nrow(roads$hroads)
