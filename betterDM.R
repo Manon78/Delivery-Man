@@ -2,34 +2,50 @@ BetterDM = function(roads,car,packages) {
   nextMove = 0
   toGo = 0
   offset = 0
-    
-    if (car$load==0) {
-      packagesX = packages[, 1]
-      packagesY = packages[, 2]
-      packageDistances = ((packagesX - car$x)**2 + (packagesY - car$y)**2)
-      orderedDistances = order(packageDistances)
-      
-      toGo = 0
-      i = 1
-      while (toGo == 0) {
-        if (packages[orderedDistances[i], 5] == 0)
-          toGo = orderedDistances[i]
-        else
+  
+  if (car$load==0) {
+    toGo = 0
+    CostsList = list()
+    while (toGo == 0) {
+      for (i in 1:length(packages)){
+        if (packages[i, 5] == 0){
+          CostsList = addCost(roads, car, packages, i, CostsList)
           i = i+1
+        }
+        else{
+          CostsList[[length(CostsList) + 1]] <- 99999 #add high value of cost to the cost list
+          i = i+1
+        }
       }
-    } else {
-      toGo=car$load  
-      offset=2
+      print("Cost list")
+      print(CostsList)
+      
+      #TODO: find smallest cost in this list, return its index
+      packNo = which.min(thingslist) #the first item in the tuple 
+      toGo = i # an integer
+      }
     }
+    else {
+      toGo=car$load  
+      offset=2 # makes you go do the package drop off coordinates (which are 2 items down from the pack pick up coordinates)
+    }
+  
   goal = c(packages[toGo, offset + 1], packages[toGo, offset + 2])
   print("goal")
   print(goal)
-  car$nextMove = AStar(car, goal, roads)[[1]]  # the optimal next move to make, as integer
+  #results = AStar(car, goal, roads)
+  car$nextMove = results[1]  # the optimal next move to make, as integer
   car$mem = list()
   return (car)
-  
 }
 
+addCost = function(roads, car, packages, i, CostsList){
+  goal = c(packages[i, 1], packages[i, 2])
+  print(goal)
+  results = AStar(car, goal, roads)
+  CostsList[[length(CostsList) + 1]] <- results[2] # add the cost of travel to the goal to a list of costs, in order of packs.
+  return (CostsList)
+}
 
 AStar = function(car, goal, roads) {
   gridSize = nrow(roads$hroads)
