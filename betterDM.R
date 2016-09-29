@@ -5,9 +5,13 @@ BetterDM = function(roads,car,packages) {
     movesList = list(length(packages))
     for (i in 1:5){  # hoping we get 5 packages...
       if (packages[i, 5] == 0){
-        result = AStar(car, c(packages[i, 1], packages[i, 2]), roads) 
-        costsList[i] = result[2]
-        movesList[i]= result[1]  
+        result1 = AStar(car, c(packages[i, 1], packages[i, 2]), roads) # car to package astar 
+        packageCar = list(packages[i, 1], packages[i,2])  # make package we care about have same attributes as car
+        packageCar$x = packages[i, 1]
+        packageCar$y = packages[i,2]
+        result2 = AStar(packageCar, c(packages[i, 3], packages[i,4]), roads) # package to drop-off astar
+        costsList[i] = result1[2] + result2[2]
+        movesList[i]= result1[1]  
         i = i+1
       }
       else{
@@ -42,8 +46,9 @@ AStar = function(car, goal, roads) {
                               inFrontier = FALSE, visited = FALSE)
     }
   }
-
+  
   # set up the start node at car position with f = heuristic, add it to the frontier
+  
   nodes[[car$x]][[car$y]]$f = nodes[[car$x]][[car$y]]$h
   nodes[[car$x]][[car$y]]$inFrontier = TRUE
   frontierSize = frontierSize + 1
